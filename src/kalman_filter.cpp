@@ -25,7 +25,6 @@ void KalmanFilter::Init(VectorXd &x_in, MatrixXd &P_in, MatrixXd &F_in,
 }
 
 void KalmanFilter::Predict() {
-	std::cout << "pred" << std::endl;
 	x_ = F_ * x_;
 	MatrixXd Ft = F_.transpose();
 	P_ = F_ * P_ * Ft + Q_;
@@ -33,13 +32,10 @@ void KalmanFilter::Predict() {
 
 void KalmanFilter::Update(const VectorXd &z) {
 	/**
-	 * TODO: update the state by using Kalman Filter equations
+	 * Update the state by using Kalman Filter equations
 	 */
-	std::cout << "l" << std::endl;
 	VectorXd z_pred = H_ * x_;
-	std::cout << "l2" << std::endl;
 	VectorXd y = z - z_pred;
-	std::cout << "l3" << std::endl;
 	MatrixXd Ht = H_.transpose();
 	MatrixXd S = H_ * P_ * Ht + R_;
 	MatrixXd Si = S.inverse();
@@ -47,39 +43,40 @@ void KalmanFilter::Update(const VectorXd &z) {
 	MatrixXd K = PHt * Si;
 
 	//new estimate
-	std::cout << "l4" << std::endl;
 	x_ = x_ + (K * y);
-	std::cout << "l5" << std::endl;
 	long x_size = x_.size();
 	MatrixXd I = MatrixXd::Identity(x_size, x_size);
 	P_ = (I - K * H_) * P_;
 }
 
 VectorXd KalmanFilter::radar_H(const VectorXd &x_state) {
+	/**
+	 * Radar measurement function, maps the state vector onto the measurement space
+	 */
 	VectorXd z_pred = VectorXd(3);
+	float px = x_state(0);
+	float py = x_state(1);
+	float vx = x_state(2);
+	float vy = x_state(3);
 	
-	z_pred(0) = sqrt(x_state(0) * x_state(0) + x_state(1) * x_state(1)); // Rho
-
-	if (x_state(1) != 0) {
-		z_pred(1) = tanh2(x_state(0) / x_state(1)); // Phi
-	} else {
-		//poop
-	}
-
-	z_pred(2) = sqrt(x_state(2) * x_state(2) + x_state(3) * x_state(3)); // Rhodot
+	z_pred(0) = sqrt(px * px + py * py); // Rho
+	z_pred(1) = atan2(py, px); // Phi
+	z_pred(2) = (px*vx + py*vy) / z_pred(0); // Rhodot
 
 	return z_pred;
 }
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
 	/**
-	 * TODO: update the state by using Extended Kalman Filter equations
+	 * update the state by using Extended Kalman Filter equations
 	 */
-	std::cout << "r1" << std::endl;
 	VectorXd z_pred = radar_H(x_);
-	std::cout << "r2" << std::endl;
 	VectorXd y = z - z_pred;
-	std::cout << "r3" << std::endl;
+
+	// Wrap the error back onto (-pi, pi]
+	while (y(1) >= 2*M_PI) y(1) -= 2*M_PI;
+	while (y(1) <= -2*M_PI) y(1) += 2*M_PI;
+
 	MatrixXd Ht = H_.transpose();
 	MatrixXd S = H_ * P_ * Ht + R_;
 	MatrixXd Si = S.inverse();
