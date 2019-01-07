@@ -3,6 +3,8 @@
 
 #include "Eigen/Dense"
 
+#include <fstream>
+#include <string>
 class KalmanFilter {
  public:
   /**
@@ -39,6 +41,13 @@ class KalmanFilter {
    * @param z The measurement at k+1
    */
   void Update(const Eigen::VectorXd &z);
+
+
+  /**
+   * Projects the state prediction onto the radar measurement space
+   * @param x_state The current x_
+   */
+   Eigen::VectorXd radar_H(const Eigen::VectorXd &x_state);
 
   /**
    * Updates the state by using Extended Kalman Filter equations
